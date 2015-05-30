@@ -39,8 +39,63 @@ public class FileCopierWithCamel {
         // add our route to the CamelContext
         context.addRoutes(new RouteBuilder() {
             public void configure() {
-                //from("file:data/inbox?noop=true").to("file:data/outbox");
-            	from("jms:queue:MPCS_51050_LAB5").log("RECEIVED:  jms queue: ${body} from file: ${header.CamelFileNameOnly}").convertBodyTo(String.class).to("file:data/outbox?noop=true&fileName=Thread-${threadName}-${header.CamelFileNameOnly}.out");
+                // from("jms:queue:MPCS_51050_LAB6").log("RECEIVED:  jms queue: ${body} from file: ${header.CamelFileNameOnly}")
+                // .choice()
+                // .when(body().regex(".*MSFT.*")).to("jms:topic:MPCS_51050_LAB6_TOPIC_MSFT")
+                // .when(body().regex(".*ORCL.*")).to("jms:topic:MPCS_51050_LAB6_TOPIC_ORCL")
+                // .when(body().regex(".*IBM.*")).to("jms:topic:MPCS_51050_LAB6_TOPIC_IBM");
+
+
+
+                from("file:data/inbox?noop=true").log("RETRIEVED:  ${file:name}").unmarshal().csv().split(body()).process(new Processor() {
+                    public void process(Exchange e) throws Exception {
+                        System.out.println("MESSAGE FROM FILE: " + e.getIn().getHeader("CamelFileName") + 
+                                " is heading to MPCS_51050_Lab6 Queue for Stock: " +  (e.getIn().getBody(String.class).split("\t"))[0].substring(1));
+                    }
+            }).to("jms:queue:MPCS_51050_LAB6");
+
+
+
+                from("jms:topic:MPCS_51050_LAB6_TOPIC_MSFT").log("SUBSCRIBER RECEIVED: jms MSFT queue: ${body} from file: ${header.CamelFileNameOnly}").process(mew Processor() {
+                        public void process(Exchange e) throws Exception {
+                            String[] array = e.getIn().getBody(String.class).split("\t");
+                            StringBuilder sb = new StringBuilder();
+                            sb.append("Stock:"+array[0].substring(1)+"|");
+                            sb.append("BidPrice: "+array[1]+"|");
+                            sb.append("BidQuantity: "+array[2]+"|");
+                            sb.append("AskPrice: "+array[3]+"|");
+                            sb.append("AskQuantity: "+array[4]);
+                            e.getIn().setBody(sb.toString());
+                        }
+                }).to("jms:queue:MPCS_51050_LAB6_ALL");
+
+                from("jms:topic:MPCS_51050_LAB6_TOPIC_ORCL").log("SUBSCRIBER RECEIVED: jms ORCL queue: ${body} from file: ${header.CamelFileNameOnly}").process(mew Processor() {
+                        public void process(Exchange e) throws Exception {
+                            String[] array = e.getIn().getBody(String.class).split("\t");
+                            StringBuilder sb = new StringBuilder();
+                            sb.append("Stock:"+array[0].substring(1)+"|");
+                            sb.append("BidPrice: "+array[1]+"|");
+                            sb.append("BidQuantity: "+array[2]+"|");
+                            sb.append("AskPrice: "+array[3]+"|");
+                            sb.append("AskQuantity: "+array[4]);
+                            e.getIn().setBody(sb.toString());
+                        }
+                }).to("jms:queue:MPCS_51050_LAB6_ALL");
+
+                from("jms:topic:MPCS_51050_LAB6_TOPIC_IBM").log("SUBSCRIBER RECEIVED: jms IBM queue: ${body} from file: ${header.CamelFileNameOnly}").process(mew Processor() {
+                        public void process(Exchange e) throws Exception {
+                            String[] array = e.getIn().getBody(String.class).split("\t");
+                            StringBuilder sb = new StringBuilder();
+                            sb.append("Stock:"+array[0].substring(1)+"|");
+                            sb.append("BidPrice: "+array[1]+"|");
+                            sb.append("BidQuantity: "+array[2]+"|");
+                            sb.append("AskPrice: "+array[3]+"|");
+                            sb.append("AskQuantity: "+array[4]);
+                            e.getIn().setBody(sb.toString());
+                        }
+                }).to("jms:queue:MPCS_51050_LAB6_ALL");
+
+
                 try {
 			Thread.sleep(1000);
 		} catch (InterruptedException e) {

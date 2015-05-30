@@ -13,7 +13,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
+ */ 
 package camelinaction;
 
 import org.apache.camel.CamelContext;
@@ -36,11 +36,14 @@ public class FileCopierWithCamel {
         context.addComponent("jms",
             JmsComponent.jmsComponentAutoAcknowledge(connectionFactory));
         
-        // add our route to the CamelContext
         context.addRoutes(new RouteBuilder() {
             public void configure() {
-                //from("file:data/inbox?noop=true").to("file:data/outbox");
-            	from("file:data/inbox?noop=true").log("RETRIEVED:  ${file:name}").unmarshal().csv().split(body()).to("jms:queue:MPCS_51050_LAB5");
+                from("file:data/inbox?noop=true").log("RETRIEVED:  ${file:name}").unmarshal().csv().split(body()).process(new Processor() {
+                    public void process(Exchange e) throws Exception {
+                        System.out.println("MESSAGE FROM FILE: " + e.getIn().getHeader("CamelFileName") + 
+                                " is heading to MPCS_51050_Lab6 Queue for Stock: " +  (e.getIn().getBody(String.class).split("\t"))[0].substring(1));
+                    }
+            }).to("jms:queue:MPCS_51050_LAB6");
                 try {
 			Thread.sleep(1000);
 		} catch (InterruptedException e) {
